@@ -4,6 +4,12 @@ Author: Kyle Racette <kracette(at)gmail(dot)com>
 
 Controls an 8x8 matrix of RGB LED lights, using Pulse Width Modulation
 to achieve 256 values of each color respectively.
+
+Some really useful links:
+http://www.vetco.net/catalog/product_info.php?products_id=14087
+https://plus.google.com/photos/106630138154329739101/albums/5287314028583882001/5286867776369729106?pid=5286867776369729106&oid=106630138154329739101
+http://www.vetco.net/catalog/images/VUPN6866-ModuleSchematic.jpg
+http://www.vetco.net/catalog/images/VUPN6866-pin_numbering.jpg
 */
  
 // Simple control structure for the shift registers.
@@ -25,7 +31,7 @@ struct color {
   byte rgb;
 };
  
-struct control plexer;
+struct control control;
 
 
 /*
@@ -33,12 +39,12 @@ struct control plexer;
  */
 byte matrix[8][8] = {
 
-  {GREEN,         GREEN | RED,  RED,          RED,          RED,          RED,          RED,          RED},
-  {GREEN,         GREEN,        GREEN,        GREEN | RED,  RED,          RED,          RED,          RED},
-  {GREEN,         GREEN | RED,  RED,          RED,          RED,          RED,          RED,          RED},
-  {BLUE | GREEN,  GREEN,        GREEN | RED,  RED,          RED,          RED,          RED,          GREEN | RED},
-  {BLUE | GREEN,  BLUE | GREEN, GREEN,        GREEN | RED,  RED,          RED,          GREEN | RED,  GREEN | RED},
-  {BLUE,          BLUE | GREEN, BLUE | GREEN, GREEN,        RED,          GREEN | RED,  GREEN | RED,  GREEN},
+  {GREEN,         GREEN,        GREEN,        GREEN | RED,  GREEN | RED,  RED,          RED,          RED},
+  {GREEN,         GREEN,        GREEN,        GREEN,        GREEN | RED,  GREEN | RED,  RED,          RED},
+  {GREEN,         GREEN,        GREEN,        GREEN,        GREEN,        GREEN | RED,  GREEN | RED,  RED},
+  {BLUE | GREEN,  GREEN,        GREEN,        GREEN,        GREEN,        GREEN,        GREEN | RED,  GREEN | RED},
+  {BLUE | GREEN,  BLUE | GREEN, GREEN,        GREEN,        GREEN,        GREEN,        GREEN,        GREEN | RED},
+  {BLUE,          BLUE | GREEN, BLUE | GREEN, GREEN,        GREEN,        GREEN,        GREEN,        GREEN },
   {BLUE,          BLUE,         BLUE | GREEN, BLUE | GREEN, GREEN,        GREEN,        GREEN,        GREEN},
   {BLUE,          BLUE,         BLUE,         BLUE | GREEN, BLUE | GREEN, GREEN,        GREEN,        GREEN}
 };
@@ -50,13 +56,13 @@ byte matrix[8][8] = {
  */
 void setup()
 {
-  plexer.data = 2;
-  plexer.clock = 3;
-  plexer.latch = 4;
+  control.data = 2;
+  control.clock = 3;
+  control.latch = 4;
   
-  pinMode(plexer.data, OUTPUT);
-  pinMode(plexer.clock, OUTPUT);
-  pinMode(plexer.latch, OUTPUT);
+  pinMode(control.data, OUTPUT);
+  pinMode(control.clock, OUTPUT);
+  pinMode(control.latch, OUTPUT);
 }
 
 /*
@@ -86,8 +92,8 @@ void writeMatrix(byte matrix[8][8]) {
     // set our row bytes for each color
     for (int j = 0; j < 8; j++) {
       byte val = matrix[i][j];
-      //red_row &= (row{j} & RED) << j << ;
-      //val = val << 8;
+
+      // TODO: maybe there's a better way to do this?
       red_row |= ((val & RED) >> RED_SHIFT) << j;
       green_row |= ((val & GREEN) >> GREEN_SHIFT) << j;
       blue_row |= ((val & BLUE) >> BLUE_SHIFT) << j;
@@ -99,15 +105,16 @@ void writeMatrix(byte matrix[8][8]) {
     buffer[2] = green_row ^ B11111111;
     buffer[3] = blue_row ^ B11111111;
 
-    digitalWrite(plexer.latch, LOW);
+    digitalWrite(control.latch, LOW);
     shiftBytes(buffer);
-    digitalWrite(plexer.latch, HIGH);
+    digitalWrite(control.latch, HIGH);
   }
 }
 
 void shiftBytes(byte* bs) {
+  // The last bits must get shifted in first
   for (int i = 3; i >= 0; i--) {
     byte b = bs[i];
-    shiftOut(plexer.data, plexer.clock, MSBFIRST, b);
+    shiftOut(control.data, control.clock, MSBFIRST, b);
   }
 }
