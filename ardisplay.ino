@@ -27,6 +27,8 @@ struct control {
 #define GREEN_SHIFT 1
 #define BLUE_SHIFT 0
 
+#define BAUD_RATE 9600
+
 struct color {
   byte rgb;
 };
@@ -38,6 +40,17 @@ struct control control;
  * Allocate the entire matrix here in static memory
  */
 byte matrix[8][8] = {
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0}
+};
+
+/*{
 
   {GREEN,         GREEN,        GREEN,        GREEN | RED,  GREEN | RED,  RED,          RED,          RED},
   {GREEN,         GREEN,        GREEN,        GREEN,        GREEN | RED,  GREEN | RED,  RED,          RED},
@@ -47,7 +60,12 @@ byte matrix[8][8] = {
   {BLUE,          BLUE | GREEN, BLUE | GREEN, GREEN,        GREEN,        GREEN,        GREEN,        GREEN },
   {BLUE,          BLUE,         BLUE | GREEN, BLUE | GREEN, GREEN,        GREEN,        GREEN,        GREEN},
   {BLUE,          BLUE,         BLUE,         BLUE | GREEN, BLUE | GREEN, GREEN,        GREEN,        GREEN}
-};
+};*/
+
+/*
+ * Characters are placed here when read via the Serial port
+ */
+byte serial_buffer[4];
                         
 
 /*
@@ -63,15 +81,76 @@ void setup()
   pinMode(control.data, OUTPUT);
   pinMode(control.clock, OUTPUT);
   pinMode(control.latch, OUTPUT);
+
+  Serial.begin(BAUD_RATE);
+  Serial.println("Ardisplay started!");
+
+
+  setLED(5, 5, BLUE, 1);
+  setLED(6, 6, RED, 1);
+  setLED(7, 7, GREEN, 0);
+  
 }
 
 /*
  * loop() - this function will start after setup finishes and then repeat
  * we set which LEDs we want on then call a routine which sends the states to the 74HC595
  */
-void loop()
-{
+void loop() {
+
+  /*
+  Read from the serial port.  
+  */
+  int serial_cnt = 0;
+  while (Serial.available() && serial_cnt < 4) {
+
+    serial_buffer[serial_cnt] = Serial.read();
+    serial_cnt++;
+  }
+
+  if (serial_cnt == 4) {
+
+    byte row = serial_buffer[0];
+    byte col = serial_buffer[1];
+    byte color = serial_buffer[2];
+    byte command = serial_buffer[3];
+
+    setLED((int) row, (int) col, color, command);
+
+    //setMatrix(serial_buffer[0], (int) serial_buffer[1], (int) serial_buffer[2]);
+    serial_cnt = 0;
+  }
+
   writeMatrix(matrix);
+}
+
+
+/**
+ * Set a single LED color.  
+ */
+void setLED(int row, int col, byte color, byte command) {
+
+  // If no known color was specified, early return
+  if (! color & RED && ! color & BLUE && ! color & GREEN) {
+    return;
+  }
+
+  if (command) {
+    // Turn it on
+    matrix[row][col] |= color;
+  } else {
+    // Turn it off
+    matrix[row][col] &= ~color;
+  }
+}
+
+
+/**
+ * Sets a matrix position to the given rgb color.
+ */
+void setMatrix(byte rgb, int row, int col) {
+
+  matrix[row][col] = rgb;
 }
 
 
