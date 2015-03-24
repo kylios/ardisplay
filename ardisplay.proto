@@ -1,0 +1,10 @@
+/*
+Defines messages for the computer and the Ardisplay to talk to one another.
+*/
+
+message control_color {
+	required	uint32	row	= 1;
+	required	uint32	col = 2;
+	required	uint32	color = 3;
+	required	bool	on = 4;
+}
